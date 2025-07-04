@@ -1,0 +1,106 @@
+import sys
+import random
+from pymongo import MongoClient
+from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton, QGridLayout)
+
+
+class studentApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Student App")
+        self.init_ui()
+        self.mongo_client = MongoClient("mongodb://localhost:27017/")
+        self.db = self.mongo_client["studentDB"]
+        self.collection = self.db["students"]
+
+    def init_ui(self):
+        grid = QGridLayout()
+
+        self.id_input = QLineEdit()
+        self.last_name_input = QLineEdit()
+        self.name_input = QLineEdit()
+        self.subject_input = QLineEdit()
+        self.grade_input = QLineEdit()
+
+        grid.addWidget(QLabel("ID"), 0, 0)
+        grid.addWidget(self.id_input, 0, 1)
+
+        grid.addWidget(QLabel("Last name"), 1, 0)
+        grid.addWidget(self.last_name_input, 1, 1)
+
+        grid.addWidget(QLabel("Name"), 2, 0)
+        grid.addWidget(self.name_input, 2, 1)
+
+        grid.addWidget(QLabel("Subject"), 3, 0)
+        grid.addWidget(self.subject_input, 3, 1)
+
+        grid.addWidget(QLabel("Grade"), 4, 0)
+        grid.addWidget(self.grade_input, 4, 1)
+
+        btn_add_all = QPushButton("Add all records")
+        btn_add_all.clicked.connect(self.add_all)
+        grid.addWidget(self.name_input, 0, 2)
+
+        btn_search = QPushButton("Search")
+        btn_search.clicked.connect(self.search)
+        grid.addWidget(self.name_input, 1, 2)
+
+        btn_update = QPushButton("Update")
+        btn_update.clicked.connect(self.update)
+        grid.addWidget(self.name_input, 2, 2)
+
+        btn_remove = QPushButton("Remove")
+        btn_remove.clicked.connect(self.remove)
+        grid.addWidget(self.name_input, 3, 2)
+
+        btn_close = QPushButton("Close")
+        btn_close.clicked.connect(self.close)
+        grid.addWidget(self.name_input, 4, 2)
+
+        self.layout(grid)
+
+    def add_all(self):
+        records = []
+
+        for i in range(10):
+            record = {
+                "id": str(random.randint(1, 10)),
+                "last_name": ch(LNames),
+                "name": ch(FNames),
+                "subject": ch(Subject),
+                "grade": ch(Point)
+            }
+            records.append(records)
+
+        self.collection.insert_many(records)
+
+    def search(self):
+        filters = {}
+        if self.id_input.text(): filters["id"] = self.id_input.text()
+        if self.last_name_input.text(): filters["last_name"] = self.last_name_input.text()
+        if self.name_input.text(): filters["name"] = self.name_input.text()
+        if self.subject_input.text(): filters["subject"] = self.subject_input.text()
+        if self.grade_input.text(): filters["grade"] = self.grade_input.text()
+
+        result = self.collection.find_one(filters)
+
+    def update(self):
+        id_val = self.id_input.text()
+        new_data = {
+            "last_name": self.last_name_input.text(),
+            "name": self.name_input.text(),
+            "subject": self.subject_input.text(),
+            "grade": self.grade_input.text()
+        }
+
+        self.collection.update_one({"id": id_val}, {"$set": new_data})
+
+    def remove(self):
+        id_val = self.id_input.text()
+        self.collection.delete_one({"id": id_val})
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    win = studentApp()
+    win.show()
+    sys.exit(app.exec_())
