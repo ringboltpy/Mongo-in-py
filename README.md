@@ -16,10 +16,17 @@ To search by any field, we build a filters dictionary from non-empty input field
 
         filters = {}
                 if self.name.text(): filters["name"] = self.name.text()
+                ...
 
 Then we pass it on to:
 
         result = self.collection.find_one(filters)
+
+Outputting record:
+
+        if result:
+            self.name.setText(result.get("name", ""))
+            ...
 
 **3. Update data in database**
 
