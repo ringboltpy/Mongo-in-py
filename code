@@ -1,0 +1,168 @@
+1)
+from pymongo import MongoClient
+
+client = MongoClient("mongodb://localhost:27017/")
+
+db = client["nikoloz"]
+collection = db["nikoloz"]
+
+shopping_cart = [["pear",1],["orange", 1],["apple", 2],["tomatoes", 2],["yoghurt",3]]
+reversed_cart = []
+
+for i in range(len(shopping_cart)-1, -1, -1):
+    a,b = shopping_cart[0], shopping_cart[1]
+    collection.insert_one({"item": a, "quantity": b})
+    reversed_cart.append(shopping_cart[i])
+
+print(reversed_cart)
+
+
+for la in collection.find():
+    print(la)
+
+2)
+menu = {"cola": 1.99, "fries": 2.99, "burger": 3.99, "shake": 3.5, "soda": 2.4, "chicken strips": 3.9}
+shekveta = []
+
+def get_order(menu, shekveta):
+    a = 1
+    
+    for key, value in menu.items():
+        print(f"{a} -> {key}")
+        a += 1
+    print("What can I get for you?")
+    get = input()
+
+    if get in menu:
+        how_much = input("How much?")
+        shekveta.append([get, how_much])
+        print("anything else? yes/no")
+        answer = input()
+        if answer == "yes":
+            get_order(menu, shekveta)
+        if answer == "no":
+            for i in shekveta:
+                print(f"{i[0]} -> {i[1]}")
+
+    else: 
+        print("Sorry we do not serve that")
+
+get_order(menu, shekveta)
+
+3)
+import numpy as np
+
+# 1. შევქმნათ ორი Numpy მასივი, 50 შემთხვევითი რიცხვით (0-დან 100-მდე)
+array1 = np.random.randint(1, 100, 50)
+array2 = np.random.randint(1, 100, 50)
+
+# 2. დათვლა: ჯამი, ნამრავლი, სხვაობა, გაყოფა
+sum_arrays = array1 + array2
+product_arrays = array1 * array2
+difference_arrays = array1 - array2
+
+# გაყოფისას ვიყოთ ფრთხილად ნულზე გაყოფასთან
+division_arrays = np.true_divide(array1, array2)
+# 3. გავაერთიანოთ მასივები
+combined_array = np.concatenate((array1, array2))
+
+# 4. შევცვალოთ განზომილება 5x10-ზე
+reshaped_array = combined_array.reshape(10, 10)  # 100 ელემენტია => 10x10
+
+# დავაბეჭდოთ შედეგები
+print("Array 1:\n", array1)
+print("Array 2:\n", array2)
+print("Sum:\n", sum_arrays)
+print("Product:\n", product_arrays)
+print("Difference:\n", difference_arrays)
+print("Division:\n", division_arrays)
+print("Combined (reshaped to 10x10):\n", reshaped_array)
+
+4)
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QInputDialog
+)
+from pymongo import MongoClient
+import sys
+
+class ProductApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Product Manager")
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+        # MongoDB connect
+        self.client = MongoClient("mongodb://localhost:27017/")
+        self.db = self.client["store"]
+        self.collection = self.db["products"]
+
+        # Initialize DB with initial products if empty
+        self.initialize_products()
+
+        # Buttons
+        self.increase_btn = QPushButton("Increase the price")
+        self.increase_btn.clicked.connect(self.increase_price)
+        self.layout.addWidget(self.increase_btn)
+
+        self.change_btn = QPushButton("Change the price")
+        self.change_btn.clicked.connect(self.change_price)
+        self.layout.addWidget(self.change_btn)
+
+        # Output label
+        self.output = QLabel("")
+        self.layout.addWidget(self.output)
+
+        # Show initial data
+        self.show_data()
+
+    def initialize_products(self):
+        if self.collection.count_documents({}) == 0:
+            products = {
+                "soda": 5.2,
+                "wine": 5.6,
+                "burger": 1.99,
+                "tea": 2.5,
+                "milk": 2.4,
+                "chicken": 4.1
+            }
+            for name, price in products.items():
+                self.collection.insert_one({"name": name, "price": price})
+
+    def show_data(self):
+        data = self.collection.find()
+        display = "\n".join(f"{item['name']}: {item['price']:.2f}" for item in data)
+        self.output.setText(display)
+
+    def increase_price(self):
+        product, ok = QInputDialog.getText(self, "Increase price", "Enter product name:")
+        if ok and product:
+            result = self.collection.update_one(
+                {"name": product},
+                {"$inc": {"price": 1}}
+            )
+            if result.matched_count == 0:
+                self.output.setText(f"Product '{product}' not found.")
+            else:
+                self.show_data()
+
+    def change_price(self):
+        product, ok1 = QInputDialog.getText(self, "Change price", "Enter product name:")
+        if not ok1 or not product:
+            return
+        price, ok2 = QInputDialog.getDouble(self, "New price", f"Enter new price for {product}:", min=0)
+        if not ok2:
+            return
+
+        self.collection.update_one(
+            {"name": product},
+            {"$set": {"price": price}},
+            upsert=True  # insert if not exists
+        )
+        self.show_data()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = ProductApp()
+    window.show()
+    sys.exit(app.exec_())
